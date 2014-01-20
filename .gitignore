@@ -16,3 +16,11 @@
 *.exe
 *.out
 *.app
+
+# uC specific files (and so forth)
+*.hex
+*.elf
+*.eep
+*.map
+*.lst
+*.lss
