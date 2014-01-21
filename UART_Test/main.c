@@ -153,19 +153,19 @@ void main(void)
 
 	while(true)
 	{
-		_delay_ms(100);	
+//		_delay_ms(100);	
 //		USART_transmit((char)46);
 //		USART_transmit((cycleEven)?~'c':'\n');
 
-		USART_transmit(*rxPtr);
-		if((rxPtr-rxBuffer)>=(RX_BUFFER_LENGTH/2)) //FIXME any error in this call
+		USART_transmit(USART_receive());
+/*		if((rxPtr-rxBuffer)>=(RX_BUFFER_LENGTH/2)) //FIXME any error in this call
 		{
 			rxPtr='\0'; // terminate String
 			USART_transmit_string(rxBuffer);
 			rxPtr=rxBuffer;
 			memset((void*)rxBuffer,0,RX_BUFFER_LENGTH/2); //could be interrupted
 		}
-		PORTB=(cycleEven<<PB0);
+*/		PORTB=(cycleEven<<PB0);
 		cycleEven=(cycleEven+1)%2;
 	}
 }
