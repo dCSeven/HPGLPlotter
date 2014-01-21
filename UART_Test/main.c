@@ -73,7 +73,8 @@ void USART_transmit_string (char *data)
 {
 	UCSRB&=~(1<<UDRIE); // disable Interrupt (USART UDRE)
 	if(txBuffer)free((void *)txBuffer); //FIXME don't free previous message
-	txPtr=txBuffer=memcpy(malloc(strlen(data)),data,strlen(data)); //XXX maybe malloc and memcpy is not necessary or wanted
+//	txPtr=txBuffer=memcpy(malloc(strlen(data)),data,strlen(data)); //XXX maybe malloc and memcpy is not necessary or wanted
+	txPtr=txBuffer=data;
 	UCSRB|=(1<<UDRIE)|(1<<TXEN);
 }
 
@@ -134,8 +135,6 @@ void main(void)
 	DDRD=(0<<PD0)|(1<<PD1);
 	DDRB=(1<<PB0);
 	
-	rxBuffer=malloc(RX_BUFFER_LENGTH);
-
 //	char* str1=malloc(20*sizeof(char));
 //	strcpy_P(str1, PSTR ("Hello UART World"));
 
@@ -143,8 +142,8 @@ void main(void)
 	sei();
 //	USART_transmit_string(str1);
 
-	USART_transmit_string("Hello UART World\r\n"); //FIXME Strings  should be appended not removed
-	USART_transmit_string("Print some statments to fill the buffer:\r\n");
+//	USART_transmit_string("Hello UART World\r\n"); //FIXME Strings  should be appended not removed
+//USART_transmit_string("Print some statments to fill the buffer:\r\n");
 	PORTB=(1<<PB0);
 
 	uint8_t cycleEven=0;
@@ -157,7 +156,7 @@ void main(void)
 //		USART_transmit((char)46);
 //		USART_transmit((cycleEven)?~'c':'\n');
 
-		USART_transmit(USART_receive());
+			USART_transmit(USART_receive());
 /*		if((rxPtr-rxBuffer)>=(RX_BUFFER_LENGTH/2)) //FIXME any error in this call
 		{
 			rxPtr='\0'; // terminate String
@@ -165,7 +164,8 @@ void main(void)
 			rxPtr=rxBuffer;
 			memset((void*)rxBuffer,0,RX_BUFFER_LENGTH/2); //could be interrupted
 		}
-*/		PORTB=(cycleEven<<PB0);
+*/	PORTB=(cycleEven<<PB0);
+
 		cycleEven=(cycleEven+1)%2;
 	}
 }
