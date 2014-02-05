@@ -1,4 +1,4 @@
-/** Simple test class for uart/usart communication
+/** Simple test class for uart communication
  * (and to crate a library for that (interrupt driven))
  * 
  * The uC is a ATMega8-16PU operating on 9.83040MHz
@@ -12,7 +12,7 @@
 #define UART_BITS 8 //4<x<9
 //#define BAUD 19200
 #define MYUBRR ((F_CPU/16/BAUD)-1)
-#define RX_BUFFER_LENGTH 4 // sizeof(char)=1 therefore not needed
+#define RX_BUFFER_LENGTH 5 // sizeof(char)=1 therefore not needed
 
 #define true (0==0)
 #define false (0!=0)
@@ -73,7 +73,7 @@ void USART_transmit_string (char *data)
 {
 	UCSRB&=~(1<<UDRIE); // disable Interrupt (USART UDRE)
 	if(txBuffer)free((void *)txBuffer); //FIXME don't free previous message
-	txPtr=txBuffer=memcpy(malloc(strlen(data)),data,strlen(data)); //XXX maybe malloc and memcpy is not necessary or wanted
+	txPtr=txBuffer=data;
 	UCSRB|=(1<<UDRIE)|(1<<TXEN);
 }
 
@@ -136,35 +136,39 @@ void main(void)
 	
 	rxBuffer=malloc(RX_BUFFER_LENGTH);
 
-//	char* str1=malloc(20*sizeof(char));
-//	strcpy_P(str1, PSTR ("Hello UART World"));
-
 	//at last enable interrupts
 	sei();
 //	USART_transmit_string(str1);
 
 	USART_transmit_string("Hello UART World\r\n"); //FIXME Strings  should be appended not removed
 	USART_transmit_string("Print some statments to fill the buffer:\r\n");
+
 	PORTB=(1<<PB0);
 
 	uint8_t cycleEven=0;
 
-//	UCSRB|=(1<<RXCIE);
+	UCSRB|=(1<<RXCIE);
 
+	uint8_t rxLen=0; //stores length of received string
 	while(true)
 	{
-		_delay_ms(100);	
+		_delay_ms(10);	
 //		USART_transmit((char)46);
 //		USART_transmit((cycleEven)?~'c':'\n');
 
-		USART_transmit(*rxPtr);
-		if((rxPtr-rxBuffer)>=(RX_BUFFER_LENGTH/2)) //FIXME any error in this call
+//		USART_transmit(*rxPtr);
+
+		if(rxBuffer && (rxLen=(rxPtr-rxBuffer))) // if buffer exists and data is received
 		{
-			rxPtr='\0'; // terminate String
-			USART_transmit_string(rxBuffer);
+			cli(); //disable interrupts FIXME maybe do any other thing, cause it halts everything (also Stepper Movement)
+			*rxPtr='\0'; // terminate String
+			
+			USART_transmit_string(strcpy(malloc(rxLen),(const char *)rxBuffer));
 			rxPtr=rxBuffer;
-			memset((void*)rxBuffer,0,RX_BUFFER_LENGTH/2); //could be interrupted
+			memset((void*)rxBuffer,0,rxLen-1); // clear buffer (cause of string termination we can say rxLen-1)
+			sei(); // enable interrupts again
 		}
+
 		PORTB=(cycleEven<<PB0);
 		cycleEven=(cycleEven+1)%2;
 	}
