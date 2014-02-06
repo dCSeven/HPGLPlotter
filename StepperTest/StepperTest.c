@@ -2,11 +2,11 @@
  * Testing circuit for Steppers with usage of a TCA 3727
  * Ports are used as follows:
  uC  --> TCA 3727
- PD0 --> I10,I20
- PD1 --> I11,I21
- PD2 --> Phase1
- PD3 --> Phase2
- PD4 --> Inhibit
+ PB0 --> I10,I20
+ PB1 --> I11,I21
+ PB2 --> Phase1
+ PB3 --> Phase2
+ PB4 --> Inhibit
 
  PC0 --> Poti   (ADC0)
 
@@ -39,13 +39,14 @@
 
 #define F_CPU 3686400
 
-#define STEPS_PER_SEC //TODO
+//#define STEPS_PER_SEC 300 //XXX testing necessary
+#define STEPS_PER_SEC 48 // cause of testing board lower steps possible
 
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
-//#include <avr/sleep.h>
+#include <avr/sleep.h>
 //#include "StepperTest.h"
 
 /*

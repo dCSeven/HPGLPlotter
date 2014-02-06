@@ -14,6 +14,12 @@
 #define MYUBRR ((F_CPU/16/BAUD)-1)
 #define RX_BUFFER_LENGTH 5 // sizeof(char)=1 therefore not needed
 
+//#define HARD_FLOW_CONTROL //TODO implement in a correct manner
+//#define SOFT_FLOW_CONTROL //TODO implement in a correct manner
+
+#define XON  (0x11)
+#define XOFF (0x13)
+
 #define true (0==0)
 #define false (0!=0)
 
@@ -46,6 +52,15 @@ volatile char *txPtr; // used in ISR USART_UDRE to store position of currently t
 volatile char *rxBuffer;
 volatile char *rxPtr; // used in ISR USART_RXC the same way as txPtr in UDRE ISR
 
+/* TODO use a kind of bitfield (like this one) for flow control
+volatile struct
+{
+ uint8_t rx_turn_off:1;
+ uint8_t rx_turn_on:1;
+ uint8_t rx_is_turned_off:1;
+ uint8_t tx_is_turned_off:1;
+} flow_flags;
+*/
 
 void USART_init(unsigned int ubrr)
 {
@@ -122,7 +137,26 @@ ISR(USART_RXC_vect)
 	{
 		*rxPtr=UDR;
 		rxPtr++;
-		//TODO Hardware Handshaking and clear Interrupt
+#ifdef HARD_FLOW_CONTROL
+		//TODO Hardware Handshaking 
+#elif defined SOFT_FLOW_CONTROL 
+/*		if(txBuffer)
+		{
+			if(txPtr!=txBuffer)
+			{
+				*--txPtr=XOFF;
+			}else
+		}
+		else
+		{
+			txBuffer=txPtr=(char *)malloc(2);
+			*txBuffer=XOFF;
+			*(txBuffer+1)='\0';
+		}
+*/	
+		
+		UCSRB|=(1<<UDRIE)|(1<<TXEN);
+#endif
 		UCSRB&=~(1<<RXCIE);
 	} //else probably clear Interrupt
 }

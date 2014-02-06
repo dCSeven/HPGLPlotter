@@ -2,11 +2,26 @@
  * Hauptprogramm fuer Plottersteuerung
  * Kommandos(HPGL) werden per UART uebertragen
  * 
+ * Used Ports:
+ * PORTD:
+ * PD0 Rx
+ * PD1 Tx
  *
 **/
 
-#define F_CPU 4000000
+#include "main.h"
 
+void main (void)
+{
+	USART_init();	
+	//USART_enable_rx_interrrupt();
 
-#include "UART.h"
-#include "Stepper.h"
+	sei();
+
+	while(true)
+	{
+		delay_ms(10);	
+		step(atoi(USART_receive()));//FIXME make anything like that
+	}
+
+}
