@@ -19,11 +19,12 @@
 
 
  TODO make interrupt driven (needs a timer)
- TODO use clock 981q
+ TODO use clock 9.830400
 **/
 
 #define true (0==0)
 #define false (0!=0)
+
 #define I0 PB0
 #define I1 PB1
 #define Ph1 PB2
@@ -38,11 +39,13 @@
 
 #define F_CPU 3686400
 
+#define STEPS_PER_SEC //TODO
+
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
-#include <avr/sleep.h>
+//#include <avr/sleep.h>
 //#include "StepperTest.h"
 
 /*

@@ -1,21 +1,16 @@
-/** Simple test class for uart communication
+
+/** Simple UART library for interrupt driven communication
  * (and to crate a library for that (interrupt driven))
  * 
- * The uC is a ATMega8-16PU operating on 9.83040MHz
+ * The uC is a ATMega8-16PU operating on 9.83040MHz (at the moment at 4MHz (internal oszillator))
  * 
 **/
- 
-//#define F_CPU 9830400
-#define F_CPU 4000000
 
-//#define BAUD 19200
 #define BAUD 9600
 #define UART_BITS 8 //4<x<9
 #define MYUBRR ((F_CPU/16/BAUD)-1)
 #define RX_BUFFER_LENGTH 5 // sizeof(char)=1 therefore not needed
 
-#define true (0==0)
-#define false (0!=0)
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -24,21 +19,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-
-
-enum USART_Error 
-{
-	err_success=0,
-	err_frame, // represents 1st stop bit error (out of sync/...)
-	err_dataOverrun, // data loss due to Reciever buffer full condition
-	err_parity
-};
-
-struct USART_Frame //TODO use in methods
-{
-	unsigned char data;
-	enum USART_Error err;
-};
 
 volatile char *txBuffer;
 volatile char *txPtr; // used in ISR USART_UDRE to store position of currently transmitting character in txBuffer
@@ -56,6 +36,10 @@ void USART_init(unsigned int ubrr)
 	UCSRB = (1<<RXEN)|(1<<TXEN);
 	// Set frame format: 8data(UCSZx), 1stop bit(USBS) TODO check if it is right
 	UCSRC = (1<<URSEL)|(0<<USBS)|((UART_BITS-5)<<UCSZ0);
+
+	rxPtr=rxBuffer=(char *) malloc(RX_BUFFER_LENGTH);
+
+	DDRD=(0<<PD0)|(1<<PD1);
 }
 
 void USART_transmit(char data)
@@ -89,6 +73,33 @@ char USART_receive( void )
 	return UDR;
 }
 
+// if enabled rxbuf
+void USART_enable_rx_interrrupt(void)
+{
+	UCSRB|=(1<<RXCIE);
+}
+
+void USART_disable_rx_interrupt(void)
+{
+	UCSRB&=~(1<<RXCIE);
+}
+
+//returns a copy of the received data and clears the rx buffer if it is not empty
+char* USART_get_rx_buffer(void)
+{
+	int8_t len=rxPtr-rxbuf;
+	if(len>0)
+	{
+		cli();
+		char * chr= (char*) malloc(len);
+		memcpy(chr,rxbuf,len)
+		//TODO clear rx buffer
+
+		sei();
+		return chr;
+	}
+	return 0;
+}
 
 /* USART Data Register Empty */
 ISR(USART_UDRE_vect)	// maybe use USART_TXC_vect for verifying transmission
@@ -127,51 +138,5 @@ ISR(USART_RXC_vect)
 	} //else probably clear Interrupt
 }
 
-void main(void)
-{
-	//init everything
-	USART_init(MYUBRR);
-	DDRD=(0<<PD0)|(1<<PD1);
-	DDRB=(1<<PB0);
-	
-	rxBuffer=malloc(RX_BUFFER_LENGTH);
-
-	//at last enable interrupts
-	sei();
-//	USART_transmit_string(str1);
-
-	USART_transmit_string("Hello UART World\r\n"); //FIXME Strings  should be appended not removed
-	USART_transmit_string("Print some statments to fill the buffer:\r\n");
-
-	PORTB=(1<<PB0);
-
-	uint8_t cycleEven=0;
-
-	UCSRB|=(1<<RXCIE);
-
-	uint8_t rxLen=0; //stores length of received string
-	while(true)
-	{
-		_delay_ms(10);	
-//		USART_transmit((char)46);
-//		USART_transmit((cycleEven)?~'c':'\n');
-
-//		USART_transmit(*rxPtr);
-
-		if(rxBuffer && (rxLen=(rxPtr-rxBuffer))) // if buffer exists and data is received
-		{
-			cli(); //disable interrupts FIXME maybe do any other thing, cause it halts everything (also Stepper Movement)
-			*rxPtr='\0'; // terminate String
-			
-			USART_transmit_string(strcpy(malloc(rxLen),(const char *)rxBuffer));
-			rxPtr=rxBuffer;
-			memset((void*)rxBuffer,0,rxLen-1); // clear buffer (cause of string termination we can say rxLen-1)
-			sei(); // enable interrupts again
-		}
-
-		PORTB=(cycleEven<<PB0);
-		cycleEven=(cycleEven+1)%2;
-	}
-}
-
-// vi:set ai ts=2 sw=2 fdm=syntax:
+// vi :set ai ts=2 sw=2:
+// vim:set ai ts=2 sw=2 fdm=syntax:

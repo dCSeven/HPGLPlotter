@@ -8,5 +8,5 @@
 #define F_CPU 4000000
 
 
-#include "UART.c"
+#include "UART.h"
 #include "Stepper.h"
