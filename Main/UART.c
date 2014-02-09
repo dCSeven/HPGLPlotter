@@ -58,7 +58,7 @@ char USART_receive(void)
 	return UDR;
 }
 
-// if enabled rxbuf contains data
+// if enabled rxbuf will contain received data
 void USART_enable_rx_interrrupt(void)
 {
 	UCSRB|=(1<<RXCIE);

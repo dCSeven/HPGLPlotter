@@ -9,7 +9,7 @@ flash: main.hex
 verify: main.hex
 	avrdude -p $(PART) -c stk500 -U flash:v:$^:i -P /dev/ttyACM0 #avrdoper
 
-main.hex: main.c UART.c
+main.hex: *.c
 	avr-gcc -mmcu=$(PART) -o main.elf -O2 $^
 	avr-objcopy -O ihex main.elf $@
 
