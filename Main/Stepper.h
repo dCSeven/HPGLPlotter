@@ -28,6 +28,7 @@
  DONE make usable for 3 Steppers (x,y,z)
  TODO make it possible to customize the stepper pins
  TODO make movement linear (that all steppers are finnished at the same time)
+ TODO add function/variable to find out when the steppers have finnshed their movement
  TODO implement functions to convert between coordinates and steps
 
  XXX  use clock 9.830400
