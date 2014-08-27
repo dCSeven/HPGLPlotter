@@ -7,7 +7,7 @@ volatile char *rxBuffer;
 volatile char *rxPtr; // used in ISR USART_RXC the same way as txPtr in UDRE ISR
 
 
-void USART_init_with_ubbr(unsigned int ubrr)
+void USART_init_with_ubrr(unsigned int ubrr)
 {
 	// Set baud rate
 	UBRRH = (unsigned char)(ubrr>>8)&0xFF;
@@ -20,15 +20,19 @@ void USART_init_with_ubbr(unsigned int ubrr)
 	rxPtr=rxBuffer=(char *) malloc(RX_BUFFER_LENGTH);
 
 	DDRD=(0<<PD0)|(1<<PD1);
+#ifdef HARD_FLOW_CONTROL
+	FLOW_DDR|=(0<<RTS)|(1<<CTS);
+#endif
 }
 
 void USART_init()
 {
-	return USART_init_with_ubbr(MYUBRR);
+	return USART_init_with_ubrr(MYUBRR);
 }
 
-void USART_transmit(char data)
+void USART_transmit(char data) 
 {
+	//XXX clear UDRE interrupt before waiting (and set it to prev state after everything)
 	// Wait for empty transmit buffer
 	while ( !( UCSRA & (1<<UDRE)) );
 	// Put data into buffer, which sends the data
@@ -77,11 +81,19 @@ char* USART_get_rx_buffer(void)
 	{
 		cli();
 		char * chr= (char*) malloc(len);
-		memcpy((void*)chr,(const char*)rxBuffer,len);
+		*rxPtr='\0'; //Terminate String
+		memcpy((void*)chr,(const char*)rxBuffer,len+1);
 
 		//clear rx buffer
-		memset((void*)rxBuffer,0,len-1);
+//		memset((void*)rxBuffer,0,len-1); // memset needed for string-termination 
 		rxPtr=rxBuffer;
+#ifdef HARD_FLOW_CONTROL
+		FLOW_PORT|=(1<<CTS);
+#elif defined SOFT_FLOW_CONTROL
+#error SOFT_FLOW_CONTROL not implemented (USART_get_rx_buffer)
+#else // NO FLOW CONTROL
+		UCSRB|=(1<<RXCIE); // enable receiver again
+#endif
 
 		sei();
 		return chr;
@@ -121,9 +133,33 @@ ISR(USART_RXC_vect)
 	{
 		*rxPtr=UDR;
 		rxPtr++;
-		//TODO Hardware Handshaking and clear Interrupt
+#ifdef HARD_FLOW_CONTROL
+		//TODO Hardware Handshaking 
+		FLOW_PORT&=~(1<<CTS);
+
+#elif defined SOFT_FLOW_CONTROL 
+#error SOFT_FLOW_CONTROL not defined (ISR(USART_RXC_vect))
+/*		if(txBuffer)
+		{
+			if(txPtr!=txBuffer)
+			{
+				*--txPtr=XOFF; // only if buffer not full
+			}else
+		}
+		else
+		{
+			txBuffer=txPtr=(char *)malloc(2);
+			*txBuffer=XOFF;
+			*(txBuffer+1)='\0';
+		}
+*/	
+		UCSRB|=(1<<UDRIE)|(1<<TXEN);
+		//maybe clear interrupt too
+#else // no flow control defined
+		UCSRB&=~(1<<RXCIE); // clear interrupt to protect from buffer overflow (XXX find better solution)
+#endif
 		UCSRB&=~(1<<RXCIE);
-	} else UCSRB&=~(1<<RXCIE);//else probably clear Interrupt 
+	} else UCSRB&=~(1<<RXCIE);//else (no buffer available) probably clear Interrupt 
 }
 
 // vi :set ai ts=2 sw=2:
