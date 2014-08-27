@@ -20,7 +20,8 @@ completed
 
 ####Serial communication
 
-Handshaking is finnished (only needs to be simplified)
+Hardware-Handshaking is finnished (only needs to be simplified)
+Software-Handshaking needs testing
 
 ####Input processing
 
