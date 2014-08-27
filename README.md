@@ -20,10 +20,11 @@ completed
 
 ####Serial communication
 
-Handshaking needs to be done to prohibit buffer overflow
-
+Handshaking is finnished (only needs to be simplified)
 
 ####Input processing
 
 not finnished at all
-(will be started the next days (17.-19.02.))
+_(when the project is continued it will be done)_
+
+**To get a more in depth overview what is to be done, look inside the files. There are lots of FIXME, TODO, XXX tags in the header comment of most files**
