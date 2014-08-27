@@ -2,11 +2,13 @@
  * (and to crate a library for that (interrupt driven))
  * 
  * The uC is a ATMega8-16PU operating on 9.83040MHz
- * 
+ * TODO add ISR for External Interrupt 1 for handling RTS
+ * XXX if done remove defines for flow control (FLOW_PORT,FLOW_DDR(,CTS,RTS))
 **/
  
 //#define F_CPU 9830400
-#define F_CPU 4000000
+//#define F_CPU 4000000
+#define F_CPU 12000000
 
 //#define BAUD 19200
 #define BAUD 9600
@@ -14,11 +16,20 @@
 #define MYUBRR ((F_CPU/16/BAUD)-1)
 #define RX_BUFFER_LENGTH 5 // sizeof(char)=1 therefore not needed
 
-//#define HARD_FLOW_CONTROL //TODO implement in a correct manner
+#define HARD_FLOW_CONTROL //TODO implement in a correct manner (doesn't work with minicom)
 //#define SOFT_FLOW_CONTROL //TODO implement in a correct manner
 
 #define XON  (0x11)
 #define XOFF (0x13)
+
+#define FLOW_PORT PORTD
+#define FLOW_DDR  DDRD
+#define CTS       PD3
+#define RTS       PD2
+
+#if (defined HARD_FLOW_CONTROL) && (defined SOFT_FLOW_CONTROL)
+#error ONLY one of HARD_FLOW_CONTROL and SOFT_FLOW_CONTROL is allowed 
+#endif
 
 #define true (0==0)
 #define false (0!=0)
@@ -138,12 +149,14 @@ ISR(USART_RXC_vect)
 		rxPtr++;
 #ifdef HARD_FLOW_CONTROL
 		//TODO Hardware Handshaking 
+		FLOW_PORT&=~(1<<CTS);
+
 #elif defined SOFT_FLOW_CONTROL 
 /*		if(txBuffer)
 		{
 			if(txPtr!=txBuffer)
 			{
-				*--txPtr=XOFF;
+				*--txPtr=XOFF; // only if buffer not full
 			}else
 		}
 		else
@@ -153,11 +166,13 @@ ISR(USART_RXC_vect)
 			*(txBuffer+1)='\0';
 		}
 */	
-		
 		UCSRB|=(1<<UDRIE)|(1<<TXEN);
+		//maybe clear interrupt too
+#else // no flow control defined
+		UCSRB&=~(1<<RXCIE); // clear interrupt to protect from buffer overflow (XXX find better solution)
 #endif
+	} //else clear interrupt (nothing to do)
 		UCSRB&=~(1<<RXCIE);
-	} //else probably clear Interrupt
 }
 
 void main(void)
@@ -166,6 +181,9 @@ void main(void)
 	USART_init(MYUBRR);
 	DDRD=(0<<PD0)|(1<<PD1);
 	DDRB=(1<<PB0);
+#ifdef HARD_FLOW_CONTROL
+	FLOW_DDR|=(0<<RTS)|(1<<CTS);
+#endif
 	
 	rxBuffer=malloc(RX_BUFFER_LENGTH);
 
@@ -198,6 +216,26 @@ void main(void)
 			USART_transmit_string(strcpy(malloc(rxLen),(const char *)rxBuffer));
 			rxPtr=rxBuffer;
 			memset((void*)rxBuffer,0,rxLen-1); // clear buffer (cause of string termination we can say rxLen-1)
+#ifdef HARD_FLOW_CONTROL
+			FLOW_PORT|=(1<<CTS);
+#elif SOFT_FLOW_CONTROL
+			if(txBuffer && (txPtr-txBuffer))*--txPtr=XON;
+			else if(txBuffer) // buffer full
+			{
+				char* str=malloc(strlen(txBuffer+1)); //realloc could also be used (but needs more time but maybe not as much memory) XXX find out if it would be better in this case (buffer >RAM/2)
+				*str=XON;
+				strcpy(str+1,txBuffer);
+				free(txBuffer);
+				txBuffer=txPtr=str;
+			}else // no buffer there
+			{
+				char* str=malloc(sizeof(char));
+				*str=XON;
+				USART_transmit_string(str);
+			}
+#else // NO FLOW CONTROL
+		UCSRB|=(1<<RXCIE); // enable receiver again
+#endif
 			sei(); // enable interrupts again
 		}
 

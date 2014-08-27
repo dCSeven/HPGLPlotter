@@ -4,6 +4,8 @@ compile: main.hex
 
 all: compile flash
 
+compile: main.hex
+
 flash: main.hex
 	avrdude -p $(PART) -c stk500 -U flash:w:$^:i -P /dev/ttyACM0 #avrdoper
 verify: main.hex

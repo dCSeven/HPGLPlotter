@@ -2,7 +2,8 @@
 #define _HPGL_GEN_DEF_
 
 
-#define F_CPU 4000000UL
+//#define F_CPU 4000000UL
+#define F_CPU  12000000UL
 
 #define true (0==0)
 #define false (0!=0)
