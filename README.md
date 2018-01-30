@@ -26,6 +26,8 @@ Software-Handshaking needs testing
 ####Input processing
 
 not finnished at all
-_(when the project is continued it will be done)_
+_(if the project will be continued it will be done)_
 
 **To get a more in depth overview what is to be done, look inside the files. There are lots of FIXME, TODO, XXX tags in the header comment of most files**
+
+If someone needs help reading into the project just open up an issue (if there isn't a better way for this)
